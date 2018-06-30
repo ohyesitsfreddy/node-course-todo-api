@@ -1,5 +1,6 @@
-let express = require('express');
-let bodyParser = require('body-parser');
+const _ = require('lodash');
+const express = require('express');
+const bodyParser = require('body-parser');
 
 let {mongoose} = require('./db/mongoose');
 let {Todo} = require('./models/todo');
@@ -81,8 +82,32 @@ app.delete('/todos/:id', (req, res) => {
             //if doc, send back with 200
         // error
             //400 with empty array
+});
 
+app.patch('/todos/:id', (req, res) => {
+    let id = req.params.id;
+    let body = _.pick(req.body, ['text', 'completed']);
+    
+    // validate the id _> not valid return 404
+    if (!ObjectID.isValid(id)){
+        return res.status(404).send();
+    }
 
+    if (_.isBoolean(body.completed) && body.completed) {
+        body.completedAt = new Date().getTime();
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+
+    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+        if (!todo){
+            return res.status(404).send();
+        }
+        res.send({todo});
+    }).catch((e) => {
+        res.status(400).send();
+    });
 });
 
 app.listen(port, () => {
